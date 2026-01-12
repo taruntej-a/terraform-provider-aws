@@ -24,10 +24,11 @@ func TestAccIPAMResourceDiscovery_serial(t *testing.T) { // nosemgrep:ci.vpc-in-
 
 	testCases := map[string]map[string]func(t *testing.T){
 		"ResourceDiscovery": {
-			acctest.CtBasic:      testAccIPAMResourceDiscovery_basic,
-			"modify":             testAccIPAMResourceDiscovery_modify,
-			acctest.CtDisappears: testAccIPAMResourceDiscovery_disappears,
-			"tags":               testAccIPAMResourceDiscovery_tags,
+			acctest.CtBasic:               testAccIPAMResourceDiscovery_basic,
+			"modify":                      testAccIPAMResourceDiscovery_modify,
+			acctest.CtDisappears:          testAccIPAMResourceDiscovery_disappears,
+			"tags":                        testAccIPAMResourceDiscovery_tags,
+			"organizationalUnitExclusion": testAccIPAMResourceDiscovery_organizationalUnitExclusion,
 		},
 		"ResourceDiscoveryAssociation": {
 			acctest.CtBasic:      testAccIPAMResourceDiscoveryAssociation_basic,
@@ -308,4 +309,77 @@ resource "aws_vpc_ipam_resource_discovery" "test" {
   }
 }
 	`, tagKey1, tagValue1, tagKey2, tagValue2)
+}
+
+// testAccIPAMResourceDiscovery_organizationalUnitExclusion tests the organizational_unit_exclusion block.
+// Note: This test requires a valid AWS Organizations setup with real Organization, Root, and OU IDs.
+// The organizational_unit_exclusion is only applied on update (ModifyIpamResourceDiscovery), not on create.
+func testAccIPAMResourceDiscovery_organizationalUnitExclusion(t *testing.T) {
+	ctx := acctest.Context(t)
+	var rd awstypes.IpamResourceDiscovery
+	resourceName := "aws_vpc_ipam_resource_discovery.test"
+
+	// Skip if not running in an AWS Organizations environment
+	// To run this test, set TF_TEST_AWS_ORGANIZATION_ID, TF_TEST_AWS_ROOT_ID, and TF_TEST_AWS_OU_ID
+	orgID := acctest.SkipIfEnvVarNotSet(t, "TF_TEST_AWS_ORGANIZATION_ID")
+	rootID := acctest.SkipIfEnvVarNotSet(t, "TF_TEST_AWS_ROOT_ID")
+	ouID := acctest.SkipIfEnvVarNotSet(t, "TF_TEST_AWS_OU_ID")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(ctx, t); acctest.PreCheckOrganizationsAccount(ctx, t) },
+		ErrorCheck:               acctest.ErrorCheck(t, names.EC2ServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckIPAMResourceDiscoveryDestroy(ctx),
+		Steps: []resource.TestStep{
+			{
+				// First create without exclusion
+				Config: testAccIPAMResourceDiscoveryConfig_base,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIPAMResourceDiscoveryExists(ctx, resourceName, &rd),
+					resource.TestCheckResourceAttr(resourceName, "organizational_unit_exclusion.#", "0"),
+				),
+			},
+			{
+				// Then update to add exclusion
+				Config: testAccIPAMResourceDiscoveryConfig_organizationalUnitExclusion(orgID, rootID, ouID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIPAMResourceDiscoveryExists(ctx, resourceName, &rd),
+					resource.TestCheckResourceAttr(resourceName, "organizational_unit_exclusion.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "organizational_unit_exclusion.*", map[string]string{
+						"organizations_entity_path": fmt.Sprintf("%s/%s/%s/*", orgID, rootID, ouID),
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Remove exclusion
+				Config: testAccIPAMResourceDiscoveryConfig_base,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIPAMResourceDiscoveryExists(ctx, resourceName, &rd),
+					resource.TestCheckResourceAttr(resourceName, "organizational_unit_exclusion.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccIPAMResourceDiscoveryConfig_organizationalUnitExclusion(orgID, rootID, ouID string) string {
+	return fmt.Sprintf(`
+data "aws_region" "current" {}
+
+resource "aws_vpc_ipam_resource_discovery" "test" {
+  description = "test"
+  operating_regions {
+    region_name = data.aws_region.current.region
+  }
+
+  organizational_unit_exclusion {
+    organizations_entity_path = "%[1]s/%[2]s/%[3]s/*"
+  }
+}
+`, orgID, rootID, ouID)
 }
