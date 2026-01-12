@@ -75,6 +75,18 @@ func resourceIPAMResourceDiscovery() *schema.Resource {
 					},
 				},
 			},
+			"organizational_unit_exclusion": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"organizations_entity_path": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 			names.AttrOwnerID: {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -128,6 +140,25 @@ func resourceIPAMResourceDiscoveryCreate(ctx context.Context, d *schema.Resource
 		return sdkdiag.AppendErrorf(diags, "waiting for IPAM Resource Discovery (%s) create: %s", d.Id(), err)
 	}
 
+	// organizational_unit_exclusion is not supported on Create, only on Modify.
+	// If exclusions are specified, we need to call Modify immediately after Create.
+	if v, ok := d.GetOk("organizational_unit_exclusion"); ok && v.(*schema.Set).Len() > 0 {
+		modifyInput := &ec2.ModifyIpamResourceDiscoveryInput{
+			IpamResourceDiscoveryId:         aws.String(d.Id()),
+			AddOrganizationalUnitExclusions: expandIPAMOrganizationalUnitExclusionsAdd(v.(*schema.Set).List()),
+		}
+
+		_, err := conn.ModifyIpamResourceDiscovery(ctx, modifyInput)
+
+		if err != nil {
+			return sdkdiag.AppendErrorf(diags, "adding organizational unit exclusions to IPAM Resource Discovery (%s): %s", d.Id(), err)
+		}
+
+		if _, err := waitIPAMResourceDiscoveryUpdated(ctx, conn, d.Id(), d.Timeout(schema.TimeoutCreate)); err != nil {
+			return sdkdiag.AppendErrorf(diags, "waiting for IPAM Resource Discovery (%s) update: %s", d.Id(), err)
+		}
+	}
+
 	return append(diags, resourceIPAMResourceDiscoveryRead(ctx, d, meta)...)
 }
 
@@ -153,6 +184,9 @@ func resourceIPAMResourceDiscoveryRead(ctx context.Context, d *schema.ResourceDa
 	d.Set("is_default", rd.IsDefault)
 	if err := d.Set("operating_regions", flattenIPAMResourceDiscoveryOperatingRegions(rd.OperatingRegions)); err != nil {
 		return sdkdiag.AppendErrorf(diags, "setting operating_regions: %s", err)
+	}
+	if err := d.Set("organizational_unit_exclusion", flattenIPAMOrganizationalUnitExclusions(rd.OrganizationalUnitExclusions)); err != nil {
+		return sdkdiag.AppendErrorf(diags, "setting organizational_unit_exclusion: %s", err)
 	}
 	d.Set(names.AttrOwnerID, rd.OwnerId)
 
@@ -194,6 +228,29 @@ func resourceIPAMResourceDiscoveryUpdate(ctx context.Context, d *schema.Resource
 
 			if len(operatingRegionUpdateRemove) != 0 {
 				input.RemoveOperatingRegions = operatingRegionUpdateRemove
+			}
+		}
+
+		if d.HasChange("organizational_unit_exclusion") {
+			o, n := d.GetChange("organizational_unit_exclusion")
+			if o == nil {
+				o = new(schema.Set)
+			}
+			if n == nil {
+				n = new(schema.Set)
+			}
+
+			os := o.(*schema.Set)
+			ns := n.(*schema.Set)
+			exclusionsToAdd := expandIPAMOrganizationalUnitExclusionsAdd(ns.Difference(os).List())
+			exclusionsToRemove := expandIPAMOrganizationalUnitExclusionsRemove(os.Difference(ns).List())
+
+			if len(exclusionsToAdd) != 0 {
+				input.AddOrganizationalUnitExclusions = exclusionsToAdd
+			}
+
+			if len(exclusionsToRemove) != 0 {
+				input.RemoveOrganizationalUnitExclusions = exclusionsToRemove
 			}
 		}
 
@@ -280,4 +337,40 @@ func expandIPAMResourceDiscoveryOperatingRegionsUpdateDeleteRegion(operatingRegi
 		RegionName: aws.String(operatingRegion["region_name"].(string)),
 	}
 	return regionUpdate
+}
+
+func flattenIPAMOrganizationalUnitExclusions(exclusions []awstypes.IpamOrganizationalUnitExclusion) []any {
+	result := []any{}
+	for _, exclusion := range exclusions {
+		result = append(result, flattenIPAMOrganizationalUnitExclusion(exclusion))
+	}
+	return result
+}
+
+func flattenIPAMOrganizationalUnitExclusion(exclusion awstypes.IpamOrganizationalUnitExclusion) map[string]any {
+	m := make(map[string]any)
+	m["organizations_entity_path"] = aws.ToString(exclusion.OrganizationsEntityPath)
+	return m
+}
+
+func expandIPAMOrganizationalUnitExclusionsAdd(exclusions []any) []awstypes.AddIpamOrganizationalUnitExclusion {
+	result := make([]awstypes.AddIpamOrganizationalUnitExclusion, 0, len(exclusions))
+	for _, exclusionRaw := range exclusions {
+		exclusion := exclusionRaw.(map[string]any)
+		result = append(result, awstypes.AddIpamOrganizationalUnitExclusion{
+			OrganizationsEntityPath: aws.String(exclusion["organizations_entity_path"].(string)),
+		})
+	}
+	return result
+}
+
+func expandIPAMOrganizationalUnitExclusionsRemove(exclusions []any) []awstypes.RemoveIpamOrganizationalUnitExclusion {
+	result := make([]awstypes.RemoveIpamOrganizationalUnitExclusion, 0, len(exclusions))
+	for _, exclusionRaw := range exclusions {
+		exclusion := exclusionRaw.(map[string]any)
+		result = append(result, awstypes.RemoveIpamOrganizationalUnitExclusion{
+			OrganizationsEntityPath: aws.String(exclusion["organizations_entity_path"].(string)),
+		})
+	}
+	return result
 }
