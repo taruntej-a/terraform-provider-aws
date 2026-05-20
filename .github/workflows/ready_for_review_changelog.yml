@@ -38,7 +38,7 @@ jobs:
           PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
           echo "PR_NUMBER=${PR_NUMBER}"
           echo "PR_URL=${PR_URL}"
-          copilot -p "Add the changelog for PR ${PR_URL}" \
+          copilot -p "Add the changelog for PR ${PR_URL} using .agents/skills/changelog skill, do **NOT** make any changes to the CHANGELOG.md file in root" \
             --allow-tool='shell(git:*)' \
             --allow-tool=write \
             --allow-tool=read \
