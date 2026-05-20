@@ -29,7 +29,7 @@ jobs:
 
       - name: Generate changelog entry
         env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
