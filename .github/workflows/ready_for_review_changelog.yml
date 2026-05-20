@@ -29,8 +29,6 @@ jobs:
 
       - name: Debug - verify auth and environment
         run: |
-          echo "=== gh auth status ==="
-          gh auth status
           echo "=== copilot version ==="
           copilot --version || echo "copilot --version failed"
           echo "=== which copilot ==="
