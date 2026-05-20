@@ -21,4 +21,4 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           gh pr comment "$PR_NUMBER" \
             --repo "${{ github.repository }}" \
-            --body "@copilot Add a changelog entry for this PR using the changelog skill. This is running in automation — skip the push confirmation and push directly after committing."
+            --body "@copilot Add a changelog entry for this PR using /changelog skill and push the changes"
