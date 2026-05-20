@@ -19,6 +19,7 @@ jobs:
           GH_TOKEN: ${{ secrets.TT_PAT_TOKEN }}
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
+          PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
           gh pr comment "$PR_NUMBER" \
             --repo "${{ github.repository }}" \
-            --body "@copilot Add a changelog entry for this PR using /changelog skill and push the changes"
+            --body "@copilot Add changelog for ${PR_URL}. Follow .agents/skills/changelog/SKILL.md exactly. Do not check CI, do not review code, do not run tests. Only: 1) determine the changelog type from the PR diff, 2) create .changelog/${PR_NUMBER}.txt, 3) commit and push. Skip the push confirmation."
