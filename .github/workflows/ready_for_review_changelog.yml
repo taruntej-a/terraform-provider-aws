@@ -6,40 +6,19 @@ on:
       - ready_for_review
 
 permissions:
-  contents: write
-  pull-requests: read
+  contents: read
+  pull-requests: write
 
 jobs:
   add-changelog:
     name: Add Changelog Entry
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-
-      - name: Install Copilot CLI
-        run: npm install -g @github/copilot
-
-   
-
-      - name: Generate changelog entry
+      - name: Trigger Copilot to add changelog
         env:
           GH_TOKEN: ${{ secrets.TT_PAT_TOKEN }}
         run: |
-          set -x
           PR_NUMBER=${{ github.event.pull_request.number }}
-          PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
-          echo "PR_NUMBER=${PR_NUMBER}"
-          echo "PR_URL=${PR_URL}"
-          copilot -p "Add the changelog for PR ${PR_URL} using .agents/skills/changelog skill, do **NOT** make any changes to the CHANGELOG.md file in root" \
-            --allow-tool='shell(git:*)' \
-            --allow-tool=write \
-            --allow-tool=read \
-            --no-ask-user
+          gh pr comment "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --body "@copilot Add a changelog entry for this PR using the changelog skill. This is running in automation — skip the push confirmation and push directly after committing."
