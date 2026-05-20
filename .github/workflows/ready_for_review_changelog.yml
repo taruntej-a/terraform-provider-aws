@@ -27,9 +27,6 @@ jobs:
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
 
-      - name: Authenticate GitHub CLI
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-
       - name: Debug - verify auth and environment
         run: |
           echo "=== gh auth status ==="
@@ -44,6 +41,8 @@ jobs:
           git log --oneline -3
 
       - name: Generate changelog entry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
           PR_NUMBER=${{ github.event.pull_request.number }}
