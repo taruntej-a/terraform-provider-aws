@@ -27,27 +27,18 @@ jobs:
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
 
-      - name: Debug - verify auth and environment
-        run: |
-          echo "=== copilot version ==="
-          copilot --version || echo "copilot --version failed"
-          echo "=== which copilot ==="
-          which copilot || echo "copilot not found in PATH"
-          echo "=== git remote ==="
-          git remote -v
-          echo "=== git log (last 3) ==="
-          git log --oneline -3
+   
 
       - name: Generate changelog entry
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TT_PAT_TOKEN }}
         run: |
           set -x
           PR_NUMBER=${{ github.event.pull_request.number }}
           PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
           echo "PR_NUMBER=${PR_NUMBER}"
           echo "PR_URL=${PR_URL}"
-          copilot -p "Add the changelog for this PR" \
+          copilot -p "Add the changelog for PR ${PR_URL}" \
             --allow-tool='shell(git:*)' \
             --allow-tool=write \
             --allow-tool=read \
