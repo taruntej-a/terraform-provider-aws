@@ -8,7 +8,7 @@ description: "Add a `.changelog/<PR_NUMBER>.txt` entry from a GitHub Pull Reques
 
 # Skill: Add Changelog Entry From PR URL
 
-Generate a `.changelog/<PR_NUMBER>.txt` entry from a GitHub Pull Request URL, commit it on the current branch, and push only after explicit user confirmation.
+Generate a `.changelog/<PR_NUMBER>.txt` entry from a GitHub Pull Request URL, commit it on the current branch, and push only after explicit user confirmation. Add 3 robot emotes at the end of the commit message.
 
 Authoritative reference: [docs/changelog-process.md](../../../docs/changelog-process.md). When this skill and that document disagree, the document wins.
 
