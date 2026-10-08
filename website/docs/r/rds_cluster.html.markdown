@@ -349,6 +349,7 @@ For more detailed documentation about each argument, refer to the AWS official d
 * `port` - (Optional) Port on which the DB accepts connections.
 * `preferred_backup_window` - (Optional) Daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.Time in UTC. Default: A 30-minute window selected at random from an 8-hour block of time per region, e.g. `04:00-09:00`.
 * `preferred_maintenance_window` - (Optional) Weekly time range during which system maintenance can occur, in (UTC) e.g., `wed:04:00-wed:04:30`
+* `publicly_accessible` - (Optional) Whether the DB cluster is publicly accessible. When the DB cluster is publicly accessible and you connect your DB cluster to a VPC, the DB cluster endpoint resolves to a public IP address. When the DB cluster isn't publicly accessible, it is an internal DB cluster with a DNS name that resolves to a private IP address. The default behavior varies depending on whether `db_subnet_group_name` is specified. See the [AWS documentation](https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBCluster.html) for details. Forces resource replacement.
 * `region` - (Optional) Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).
 * `replication_source_identifier` - (Optional) ARN of a source DB cluster or DB instance if this DB cluster is to be created as a Read Replica. **Note:** Removing this attribute after creation will promote the read replica to a standalone cluster. If DB Cluster is part of a Global Cluster, use the [`lifecycle` configuration block `ignore_changes` argument](https://www.terraform.io/docs/configuration/meta-arguments/lifecycle.html#ignore_changes) to prevent Terraform from showing differences for this argument instead of configuring this value.
 * `restore_to_point_in_time` - (Optional) Nested attribute for [point in time restore](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-pitr.html). More details below.
@@ -427,6 +428,7 @@ This resource exports the following attributes in addition to the arguments abov
 * `port` - Database port
 * `preferred_backup_window` - Daily time range during which the backups happen
 * `preferred_maintenance_window` - Maintenance window
+* `publicly_accessible` - Whether the DB cluster is publicly accessible
 * `reader_endpoint` - Read-only endpoint for the Aurora cluster, automatically load-balanced across replicas
 * `replication_source_identifier` - ARN of the source DB cluster or DB instance if this DB cluster is created as a Read Replica.
 * `storage_encrypted` - Whether the DB cluster is encrypted
