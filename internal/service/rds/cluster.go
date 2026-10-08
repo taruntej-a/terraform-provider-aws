@@ -456,6 +456,12 @@ func resourceCluster() *schema.Resource {
 					},
 					ValidateFunc: verify.ValidOnceAWeekWindowFormat,
 				},
+				names.AttrPubliclyAccessible: {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
 				"reader_endpoint": {
 					Type:     schema.TypeString,
 					Computed: true,
@@ -882,6 +888,10 @@ func resourceClusterCreate(ctx context.Context, d *schema.ResourceData, meta any
 			input.Port = aws.Int32(int32(v.(int)))
 		}
 
+		if v, ok := d.GetOkExists(names.AttrPubliclyAccessible); ok {
+			input.PubliclyAccessible = aws.Bool(v.(bool))
+		}
+
 		if v, ok := d.GetOk("preferred_backup_window"); ok {
 			modifyDbClusterInput.PreferredBackupWindow = aws.String(v.(string))
 			requiresModifyDbCluster = true
@@ -1149,6 +1159,10 @@ func resourceClusterCreate(ctx context.Context, d *schema.ResourceData, meta any
 			input.Port = aws.Int32(int32(v.(int)))
 		}
 
+		if v, ok := d.GetOkExists(names.AttrPubliclyAccessible); ok {
+			input.PubliclyAccessible = aws.Bool(v.(bool))
+		}
+
 		if v, ok := d.GetOk("preferred_backup_window"); ok {
 			modifyDbClusterInput.PreferredBackupWindow = aws.String(v.(string))
 			requiresModifyDbCluster = true
@@ -1395,6 +1409,10 @@ func resourceClusterCreate(ctx context.Context, d *schema.ResourceData, meta any
 
 		if v, ok := d.GetOk(names.AttrPreferredMaintenanceWindow); ok {
 			input.PreferredMaintenanceWindow = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOkExists(names.AttrPubliclyAccessible); ok {
+			input.PubliclyAccessible = aws.Bool(v.(bool))
 		}
 
 		if v, ok := d.GetOk("replication_source_identifier"); ok && input.GlobalClusterIdentifier == nil {
@@ -2444,6 +2462,7 @@ func resourceClusterFlatten(ctx context.Context, conn *rds.Client, dbc *types.DB
 	d.Set(names.AttrPort, dbc.Port)
 	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
 	d.Set(names.AttrPreferredMaintenanceWindow, dbc.PreferredMaintenanceWindow)
+	d.Set(names.AttrPubliclyAccessible, dbc.PubliclyAccessible)
 	d.Set("reader_endpoint", dbc.ReaderEndpoint)
 	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
 	if dbc.ScalingConfigurationInfo != nil {
